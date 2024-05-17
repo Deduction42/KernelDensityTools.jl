@@ -1,0 +1,13 @@
+name = "KernelDensityTools"
+uuid = "43c8e335-7984-45c2-b7ff-6906b0c651ff"
+authors = ["Ruben Gonzalez <ruben.carbonbased@gmail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
