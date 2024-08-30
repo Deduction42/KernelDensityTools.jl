@@ -3,24 +3,24 @@ using Statistics
 using Distributions
 using NaNStatistics
 
-abstract type KernelDensity end
-
-Base.@kwdef struct UnivariateKDE{F<:Function} <: KernelDensity
+Base.@kwdef struct UnivariateKDE{F<:Function} <: Distribution{Univariate, Continuous}
     points    :: Vector{Float64}
     h         :: Float64
     scale     :: Float64
     kernel    :: F
 end
 
-Base.@kwdef struct MultivariateKDE{F<:Function, M<:AbstractMatrix} <: KernelDensity
+Base.@kwdef struct MultivariateKDE{F<:Function, M<:AbstractMatrix} <: Distribution{Univariate, Continuous}
     points    :: Matrix{Float64}
     h         :: M
     scale     :: Float64
     kernel    :: F
 end
 
+const AbstractKDE = Union{UnivariateKDE, MultivariateKDE}
 
-Base.length(D::KernelDensity) = size(D.points, 1)
+
+Base.length(D::AbstractKDE) = size(D.points, 1)
 
 function UnivariateKDE(x::AbstractVector{<:Real}, h::Real; kernel=normal_kernel)
     return UnivariateKDE(
@@ -40,11 +40,18 @@ function MultivariateKDE(x::AbstractMatrix{<:Real}, h::AbstractMatrix{<:Real}; k
     )
 end
 
-function Distributions.pdf(D::KernelDensity, x)
+function Distributions.pdf(D::AbstractKDE, x::Real)
     return sum(kernel_weights(D,x))
 end
 
-function kernel_weights(D::KernelDensity, x::Union{T, AbstractVector{T}}) where T <: Real
+function Distributions.rand(rng::Distributions.AbstractRNG, D::UnivariateKDE)
+    ii = ceil(Int64, length(D)*rand())
+    return rand(Normal(D.points[ii], D.h))
+end
+
+
+
+function kernel_weights(D::AbstractKDE, x::Union{T, AbstractVector{T}}) where T <: Real
     w = zeros(promote_type(T, Float64), length(D))
     for ii in 1:length(D)
         w[ii] = kernel_weight(D, x, ii)

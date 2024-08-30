@@ -1,3 +1,5 @@
+include("_KernelDensity.jl")
+
 # The nadaraya-watson estimator uses kernel density weights 
 using SparseArrays
 using Interpolations
@@ -40,13 +42,13 @@ end
 # ======================================================================================================
 # Grid-based representation of the 1-d estimators for export and to feed interpolation
 # ======================================================================================================
-struct SmoothedGrid{T<:Real}
+struct KernelGrid{T<:Real}
     s :: LinRange{T, Int64}
     y :: Vector{Float64}
 end
 
-function SmoothedGrid(y::AbstractVector, θ::SampleKernelWeights{T}) where T <: AbstractRange
-    return SmoothedGrid(θ.samples, smooth(y, θ))
+function KernelGrid(y::AbstractVector, θ::SampleKernelWeights{T}) where T <: AbstractRange
+    return KernelGrid(θ.samples, smooth(y, θ))
 end
 
 # ======================================================================================================
@@ -61,7 +63,7 @@ struct KernelInterp{T<:Real}
     bounds :: Tuple{Float64, Float64}
 end
 
-function KernelInterp(G::SmoothedGrid)
+function KernelInterp(G::KernelGrid)
     bSpline = BSpline(Cubic(Flat(OnGrid())))
     interp  = interpolate(G.y, bSpline)
     bounds  = extrema(G.s)
@@ -69,7 +71,7 @@ function KernelInterp(G::SmoothedGrid)
 end
 
 function KernelInterp(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}) where T <: AbstractRange
-    G = SmoothedGrid(y, θ)
+    G = KernelGrid(y, θ)
     return KernelInterp(G)
 end
 
@@ -91,12 +93,12 @@ function linear_kernel_correction(θ::SampleKernelWeights{T}, y::AbstractVector{
 
     if allequal(ys) #No point in linear fitting if all ys0 are equal
         yh = predict.(fx, θ.samples)
-        return SmoothedGrid(θ.samples, yh)
+        return KernelGrid(θ.samples, yh)
 
     else #Scale estimator to account for flattening bias
         β  = dot(ys, y[ind])/dot(ys, ys)
         yh = predict.(fx, θ.samples).*β
-        return SmoothedGrid(θ.samples, yh)
+        return KernelGrid(θ.samples, yh)
     end
 end
 
