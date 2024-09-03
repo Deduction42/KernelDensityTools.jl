@@ -27,7 +27,7 @@ function SampleKernelWeights(samples::AbstractVector, x::AbstractVector{<:Real};
     Nx = length(x)
     weights = [ spzeros(Float64, Int64, Nx) for ii in 1:Ns ]
 
-    KDE = UnivariateKDE(x, scale*silvermans_rule(x))
+    KDE = UnivariateKDE{Normal}(x, scale*silvermans_rule(x))
 
     Threads.@threads for ii in 1:Ns
         w = replace!(kernel_weights(KDE, samples[ii]), NaN=>0) #Obtain kernel weights (replace NaNs with 0)
@@ -42,13 +42,13 @@ end
 # ======================================================================================================
 # Grid-based representation of the 1-d estimators for export and to feed interpolation
 # ======================================================================================================
-struct KernelGrid{T<:Real}
+struct KernelRegGrid{T<:Real}
     s :: LinRange{T, Int64}
     y :: Vector{Float64}
 end
 
-function KernelGrid(y::AbstractVector, θ::SampleKernelWeights{T}) where T <: AbstractRange
-    return KernelGrid(θ.samples, smooth(y, θ))
+function KernelRegGrid(y::AbstractVector, θ::SampleKernelWeights{T}) where T <: AbstractRange
+    return KernelRegGrid(θ.samples, smooth(y, θ))
 end
 
 # ======================================================================================================
@@ -58,27 +58,27 @@ end
 #We only need to use one type of interpolation, to change the type, run the constructor function on NadarayaWatsonInterp(G::NadarayaWatsonGrid) and paste the output type here
 const CubicSplineInterp = Interpolations.BSplineInterpolation{T, 1, OffsetArrays.OffsetVector{T, Vector{T}}, BSpline{Cubic{Flat{OnGrid}}}, Tuple{Base.OneTo{Int64}}} where T <: Number
 
-struct KernelInterp{T<:Real}
+struct KernelRegInterp{T<:Real}
     interp :: CubicSplineInterp{T}
     bounds :: Tuple{Float64, Float64}
 end
 
-function KernelInterp(G::KernelGrid)
+function KernelRegInterp(G::KernelRegGrid)
     bSpline = BSpline(Cubic(Flat(OnGrid())))
     interp  = interpolate(G.y, bSpline)
     bounds  = extrema(G.s)
-    return KernelInterp{eltype(G.y)}(interp, bounds)
+    return KernelRegInterp{eltype(G.y)}(interp, bounds)
 end
 
-function KernelInterp(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}) where T <: AbstractRange
-    G = KernelGrid(y, θ)
-    return KernelInterp(G)
+function KernelRegInterp(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}) where T <: AbstractRange
+    G = KernelRegGrid(y, θ)
+    return KernelRegInterp(G)
 end
 
 #This provides an additional step of using a linear regression correction based on x to reduce attenuation bias
-function KernelInterp(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}, x::AbstractVector{<:Real}) where T <: AbstractRange
+function KernelRegInterp(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}, x::AbstractVector{<:Real}) where T <: AbstractRange
     G  = linear_kernel_correction(θ, y, x)
-    return KernelInterp(G)
+    return KernelRegInterp(G)
 end
 
 # ======================================================================================================
@@ -86,19 +86,19 @@ end
 # Linear fitting step reduces flattening bias from estimator
 # ======================================================================================================
 function linear_kernel_correction(θ::SampleKernelWeights{T}, y::AbstractVector{<:Real}, x::AbstractVector{<:Real}) where T <: AbstractRange
-    fx  = Ref(KernelInterp(θ, y))
+    fx  = Ref(KernelRegInterp(θ, y))
     ys  = predict.(fx, x)
     ind = (isfinite.(ys) .& isfinite.(y))
     keepat!(ys, ind)
 
     if allequal(ys) #No point in linear fitting if all ys0 are equal
         yh = predict.(fx, θ.samples)
-        return KernelGrid(θ.samples, yh)
+        return KernelRegGrid(θ.samples, yh)
 
     else #Scale estimator to account for flattening bias
         β  = dot(ys, y[ind])/dot(ys, ys)
         yh = predict.(fx, θ.samples).*β
-        return KernelGrid(θ.samples, yh)
+        return KernelRegGrid(θ.samples, yh)
     end
 end
 
@@ -106,7 +106,7 @@ end
 # ======================================================================================================
 # Smoothing and estimation functions
 # ======================================================================================================
-function predict(θ::AbstractVector{<:KernelInterp}, X::AbstractMatrix{<:Real})
+function predict(θ::AbstractVector{<:KernelRegInterp}, X::AbstractMatrix{<:Real})
     (N, P) = size(X)
     
     if length(θ) != P
@@ -127,7 +127,7 @@ function predict(θ::AbstractVector{<:KernelInterp}, X::AbstractMatrix{<:Real})
 end
 
 
-function predict(θ::KernelInterp, x::T) where T <: Real
+function predict(θ::KernelRegInterp, x::T) where T <: Real
     if isnan(x) #Skip this if x is NaN
         return x
     end
@@ -176,28 +176,3 @@ function samplegrid(x::AbstractVector, n::Integer)
     return LinRange(Δx[1], Δx[2], n)
 end
 
-
-
-#=
-#tests
-figure()
-N = 1000
-x = 10*(0.5 .- rand(N))
-y = sin.(x) .+ 0.1.*randn(N)
-plot(x, y, ".k")
-
-Δx = extrema(x)
-xs = LinRange(Δx[1], Δx[2], 200)
-
-w0 = NadarayaWatsonWeights(xs, x)
-g0 = NadarayaWatsonGrid(y, w0)
-plot(g0.s, g0.y)
-
-y[begin:2:end] .= NaN
-x[begin:3:end] .= NaN
-w1 = NadarayaWatsonWeights(xs, x)
-g1 = NadarayaWatsonGrid(y, w1)
-plot(g1.s, g1.y)
-
-legend(["raw", "no NaN", "some NaN"])
-=#

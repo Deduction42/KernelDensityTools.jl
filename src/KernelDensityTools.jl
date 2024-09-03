@@ -4,8 +4,8 @@ module KernelDensityTools
         AbstractKernelDensity,
         UnivariateKDE,
         MultivariateKDE,
-        KernelGrid,
-        KernelInterp,
+        KernelRegGrid,
+        KernelRegInterp,
         silvermans_rule,
         predict,
         pdf
