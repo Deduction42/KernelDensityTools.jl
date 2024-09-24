@@ -76,6 +76,7 @@ end
 function __column_distance(Z::AbstractMatrix, i::Integer, j::Integer)
     return sum(x->abs2(x[1]-x[2]), zip(view(Z, :, i), view(Z, :, j)))
 end
-
+#=
 X = randn(5, 1000)
 @time D0 = __column_distances(X)
+=#
