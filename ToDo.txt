@@ -2,3 +2,4 @@
     -   Experiment also with leave-one-out maximum likelihood
 (2) Add interpolator for univariate kernels
 (3) Look at Distributions.jl API and meet that
+(4) Add tests
