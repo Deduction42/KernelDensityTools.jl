@@ -1,4 +1,4 @@
-include("_KernelDensity.jl")
+include("_AbstractKDE.jl")
 
 # The nadaraya-watson estimator uses kernel density weights 
 using SparseArrays
