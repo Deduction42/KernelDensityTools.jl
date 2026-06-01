@@ -1,0 +1,47 @@
+
+Backlog:
+(1) Parameterize dimension on Multivariate kernel density estimates 
+    -   Bandwidths should be based off static matrices Cholesky{SMatrix}
+    -   Internal points should be Vector{SVector{N}}
+        -   Subtraction of Vector and SVector results in no allocations
+    -   No more than 5 dimensions should be used (produce warning if this is exceeded)
+
+(2) Add an interpolator function to the KDE 
+    -   "FastInterpolations.jl" as a dependency over "Interpolations.jl"
+        -   FastInterpolations supports 2D, 3D, and ND interpolations
+    -   InterpUniKDE, InterpMultiKDE basically wrap the Interpolations output
+    -   Useful for amortizing density calls, is not a "Distribution" (can't generate random values)
+    -   Investigate using FFTs to rapidly evaluate initial points for an interpolation 
+        -   This is how KernelDensity.jl does this
+
+(3) We may want to look at some cross-validated bandwidth selectors
+    -   Experiment with leave-one-out maximum-likelihood
+        -   I personally feel like maximum-likelihood is a more rigorous criterion than MISE
+        -   This criterion works for multivariate KDEs without integrals (essentially Monte Carlo)
+        -   Parametric distributions maximize over it, and bandwidth is a parameter
+        -   Zero probability points are impossible and yield a negative infinite value (which is good)
+            -   If initial guess yields -Inf, double the bandwidth
+            -   If iniital guess is valid, keep doubling it until the result gets worse 
+                -   If initial doubling is worse than keep halving it until the result gets worse
+            -   Do a bounded search on the two points surrounding the best result
+    -   See how smoothed-cross-validated selctors work in KernelDensity.jl 
+        -   I think this only works for univariate densities and involves integrals 
+        -   KernelDensity.jl somehow bypasses integrals using Fast Fourier Transforms
+    
+
+(4) Add TimeRecords extension for smoothing timeseries
+
+(5) Align with Distributions.jl API 
+
+(6) Add tests
+
+#=======================================================================================================
+Leave-One-Out Maximum Likelihood Algorithm 
+=======================================================================================================#
+1.  H = initial bandwidth
+2.  Build interpolated KDE with initial bandwidth kde_H = kde(H, x) (callable object)
+3.  Evaluate k0 = k(H, 0)/N
+4.  Calculate log-likelihood (predicted kde with ith element removed)
+    -   loglik = sum(xi->log(kde_H(xi)-k0), x)
+    -   No need to scale by N/(N-1) due to constant offset from log 
+5.  Iterate over a bounded univariate search algorithm
