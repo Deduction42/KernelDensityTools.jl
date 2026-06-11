@@ -19,6 +19,10 @@ Backlog:
         -   Tends to be weak against fat-tailed distributions 
         -   R uses a "robust LCV" method that does a linear prediction of the log-likelihood for low density regions
             -   https://cran.r-project.org/web/packages/rlcv/vignettes/my-vignette.html
+        -   May be simpler to use a "outlier likelihood" that is the ratio between the KDE loglik and the "kernel max" loglik
+            -   Essentially the difference betwee the leave-one-out likelihood and the raw likelihood
+            -   If the difference is large, that point is likely to be an outlier 
+            -   May need a normalization to the LogLikelihood (sum(P)-N) to prevent treating everything as an outlier
     -   Citations: 
         -   https://biostats.bepress.com/ucbbiostat/paper125/
         -   https://www.sciencedirect.com/science/article/abs/pii/S0167865512001948#article
