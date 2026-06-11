@@ -14,18 +14,25 @@ Backlog:
     -   Investigate using FFTs to rapidly evaluate initial points for an interpolation 
         -   This is how KernelDensity.jl does this
 
-(3) We may want to look at some cross-validated bandwidth selectors
-    -   Experiment with leave-one-out maximum-likelihood
-        -   I personally feel like maximum-likelihood is a more rigorous criterion than MISE
-        -   This criterion works for multivariate KDEs without integrals (essentially Monte Carlo)
-        -   Parametric distributions maximize over it, and bandwidth is a parameter
-        -   Zero probability points are impossible and yield a negative infinite value (which is good)
-            -   If initial guess yields -Inf, double the bandwidth
-            -   If iniital guess is valid, keep doubling it until the result gets worse 
-                -   If initial doubling is worse than keep halving it until the result gets worse
-            -   Do a bounded search on the two points surrounding the best result
+(3) We may want to look at some Likelihood-Cross-Validated selectors
+    -   KL-Divergence (LCV focus) is better than MISE
+        -   Tends to be weak against fat-tailed distributions 
+        -   R uses a "robust LCV" method that does a linear prediction of the log-likelihood for low density regions
+            -   https://cran.r-project.org/web/packages/rlcv/vignettes/my-vignette.html
+    -   Citations: 
+        -   https://biostats.bepress.com/ucbbiostat/paper125/
+        -   https://www.sciencedirect.com/science/article/abs/pii/S0167865512001948#article
+        -   https://link.springer.com/article/10.1007/s00180-019-00884-0
+        -   https://stats.stackexchange.com/questions/194792/optimal-methods-for-bandwidth-selection-in-kernel-density-estimation
+    -   This criterion works for multivariate KDEs without integrals (essentially Monte Carlo)
+    -   Parametric distributions maximize over it, and bandwidth is a parameter
+    -   Zero probability points are impossible and yield a negative infinite value (which is good)
+        -   If initial guess yields -Inf, double the bandwidth
+        -   If iniital guess is valid, keep doubling it until the result gets worse 
+            -   If initial doubling is worse than keep halving it until the result gets worse
+        -   Do a bounded search on the two points surrounding the best result
     -   See how smoothed-cross-validated selctors work in KernelDensity.jl 
-        -   I think this only works for univariate densities and involves integrals 
+        -   I think this only works for univariate densities and involves integrals (MISE-based)
         -   KernelDensity.jl somehow bypasses integrals using Fast Fourier Transforms
     
 
