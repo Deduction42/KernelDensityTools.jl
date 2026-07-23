@@ -2,8 +2,9 @@
 Backlog:
 (1) Parameterize dimension on Multivariate kernel density estimates 
     -   Bandwidths should be based off static matrices Cholesky{SMatrix}
-    -   Internal points should be Vector{SVector{N}}
+    -   Internal points should DEFAULT to Vector{SVector{N}}
         -   Subtraction of Vector and SVector results in no allocations
+        -   May want to support GPU arrays later on
     -   No more than 5 dimensions should be used (produce warning if this is exceeded)
 
 (2) Add an interpolator function to the KDE 

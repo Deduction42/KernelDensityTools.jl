@@ -1,7 +1,7 @@
 name = "KernelDensityTools"
 uuid = "43c8e335-7984-45c2-b7ff-6906b0c651ff"
 authors = ["Ruben Gonzalez <ruben.carbonbased@gmail.com> and contributors"]
-version = "1.0.1-DEV"
+version = "0.0.1"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
